@@ -15,4 +15,11 @@ data:
     <p><strong>v2</strong> - this version was shipped by a pull request merged in the gitops repo; Flux rolled it out with no manual kubectl.</p>
     <p>Served from AKS through ingress-nginx, delivered by Flux (GitOps), provisioned by Terraform from GitHub Actions with OIDC.</p>
     <p>Change this page by editing <code>apps/website/configmap.yaml</code> in the gitops repo.</p>
+    <h2>Pod identity</h2>
+    <p id="kv">Reading Key Vault status...</p>
+    <script>
+    fetch('/kv/status.json').then(r=>r.json()).then(j=>{
+      document.getElementById('kv').innerHTML='Read from Key Vault with the pod\'s federated identity (no stored credentials):<br>secret <code>'+j.id.split('/secrets/')[1]+'</code> = <code>'+j.value+'</code> (deliberately non-sensitive demo value).';
+    }).catch(()=>{document.getElementById('kv').textContent='Key Vault read not available.'});
+    </script>
     </body></html>
