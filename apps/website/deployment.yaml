@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website
+  namespace: website
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: website}
+  template:
+    metadata:
+      labels: {app: website}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports: [{containerPort: 8080}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          readinessProbe:
+            httpGet: {path: /, port: 8080}
+          volumeMounts:
+            - {name: site, mountPath: /usr/share/nginx/html}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: site
+          configMap: {name: site}
+        - name: tmp
+          emptyDir: {}
