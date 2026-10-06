@@ -9,8 +9,10 @@ spec:
     remediation:
       retries: 3
   upgrade:
+    cleanupOnFail: true
     remediation:
       retries: 3
+      strategy: uninstall
   chart:
     spec:
       chart: ingress-nginx

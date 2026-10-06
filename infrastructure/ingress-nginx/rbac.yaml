@@ -61,3 +61,30 @@ subjects:
   - kind: ServiceAccount
     name: flux-applier
     namespace: ingress-nginx
+---
+# The chart's namespaced Roles grant rights `admin` does not hold (for example ingressclasses).
+# Kubernetes only lets an account create such a Role with escalate/bind on exactly those Roles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-applier-roles
+  namespace: ingress-nginx
+rules:
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles]
+    resourceNames: [ingress-nginx, ingress-nginx-admission]
+    verbs: [escalate, bind]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-applier-roles
+  namespace: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-applier-roles
+subjects:
+  - kind: ServiceAccount
+    name: flux-applier
+    namespace: ingress-nginx
