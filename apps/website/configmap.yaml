@@ -12,6 +12,7 @@ data:
     code{background:#eee;padding:.1rem .3rem;border-radius:4px}</style></head>
     <body>
     <h1>azure-simple-lab</h1>
+    <p><strong>v2</strong> - this version was shipped by a pull request merged in the gitops repo; Flux rolled it out with no manual kubectl.</p>
     <p>Served from AKS through ingress-nginx, delivered by Flux (GitOps), provisioned by Terraform from GitHub Actions with OIDC.</p>
     <p>Change this page by editing <code>apps/website/configmap.yaml</code> in the gitops repo.</p>
     </body></html>
