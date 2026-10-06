@@ -9,12 +9,44 @@ spec:
     matchLabels: {app: website}
   template:
     metadata:
-      labels: {app: website}
+      labels: {app: website, azure.workload.identity/use: "true"}
     spec:
+      serviceAccountName: website
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        # Proves the pod identity works: exchanges the projected service-account token for an Entra
+        # token (federated credential, no secret) and reads one non-sensitive demo secret from Key Vault.
+        - name: read-keyvault
+          image: curlimages/curl:8.10.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 100
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          env:
+            - {name: VAULT, value: kv-lab-dev-5e769}
+            - {name: SECRET, value: website-banner}
+          command: [sh, -c]
+          args:
+            - |
+              set -eu
+              TOKEN=$(curl -sSf -X POST "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token" \
+                -d grant_type=client_credentials -d client_id="${AZURE_CLIENT_ID}" \
+                -d client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer \
+                --data-urlencode "client_assertion=$(cat "${AZURE_FEDERATED_TOKEN_FILE}")" \
+                -d scope=https://vault.azure.net/.default \
+                | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+              curl -sSf -H "Authorization: Bearer ${TOKEN}" \
+                "https://${VAULT}.vault.azure.net/secrets/${SECRET}?api-version=7.4" > /kv/status.json
+              echo "read ${SECRET} from ${VAULT}"
+          volumeMounts:
+            - {name: kv, mountPath: /kv}
       containers:
         - name: nginx
           image: nginxinc/nginx-unprivileged:1.27-alpine
@@ -31,8 +63,14 @@ spec:
           volumeMounts:
             - {name: site, mountPath: /usr/share/nginx/html}
             - {name: tmp, mountPath: /tmp}
+            - {name: kv, mountPath: /kv, readOnly: true}
+            - {name: nginx-conf, mountPath: /etc/nginx/conf.d, readOnly: true}
       volumes:
         - name: site
           configMap: {name: site}
         - name: tmp
           emptyDir: {}
+        - name: kv
+          emptyDir: {}
+        - name: nginx-conf
+          configMap: {name: nginx-conf}
