@@ -4,7 +4,13 @@ metadata:
   name: ingress-nginx
   namespace: ingress-nginx
 spec:
-  interval: 10m
+  interval: 2m
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
   chart:
     spec:
       chart: ingress-nginx
